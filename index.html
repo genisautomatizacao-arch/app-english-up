@@ -14,19 +14,49 @@
 </head>
 <body>
 
+<!-- ===== SCREEN 0: AUTH (LOGIN/SIGNUP) ===== -->
+<div id="screen-auth" class="screen active">
+    <div class="auth-container">
+        <div class="auth-logo">
+            <img src="icons/icon-512.png" alt="FILÓ" class="mascot-img-xl">
+            <h1>FILÓ</h1>
+            <p>Seu tutor de bolso para dominar o inglês.</p>
+        </div>
+        
+        <div class="auth-form" id="auth-form">
+            <div class="input-group">
+                <input type="email" id="auth-email" placeholder="E-mail" required>
+            </div>
+            <div class="input-group">
+                <input type="password" id="auth-password" placeholder="Senha" required>
+            </div>
+            <button id="btn-auth-primary" class="btn-primary">Entrar</button>
+            <p class="auth-toggle">Ainda não tem conta? <a href="#" id="link-toggle-auth">Cadastre-se</a></p>
+        </div>
+
+        <div id="auth-loading" class="auth-loading hidden">
+            <div class="spinner"></div>
+            <p>Preparando suas lições...</p>
+        </div>
+    </div>
+</div>
+
 <!-- ===== SCREEN 1: HOME / LESSON MAP ===== -->
-<div id="screen-home" class="screen active">
+<div id="screen-home" class="screen">
     <header class="home-header">
-        <div class="header-stats">
-            <div class="stat-item">
-                <span class="stat-icon">🔥</span>
-                <span id="streak-count" class="stat-value">0</span>
+        <div class="header-top">
+            <div class="header-stats">
+                <div class="stat-item">
+                    <span class="stat-icon">🔥</span>
+                    <span id="streak-count" class="stat-value">0</span>
+                </div>
+                <div class="mascot-badge"><img src="icons/icon-512.png" alt="FILÓ" class="mascot-img"></div>
+                <div class="stat-item">
+                    <span class="stat-icon">⭐</span>
+                    <span id="xp-count" class="stat-value">0</span>
+                </div>
             </div>
-            <div class="mascot-badge"><img src="icons/icon-512.png" alt="FILÓ" class="mascot-img"></div>
-            <div class="stat-item">
-                <span class="stat-icon">⭐</span>
-                <span id="xp-count" class="stat-value">0</span>
-            </div>
+            <button id="btn-logout" class="btn-icon-alt" title="Sair">🚪</button>
         </div>
         <div class="lives-bar">
             <div id="lives-display" class="lives-icons">❤️❤️❤️❤️❤️</div>
@@ -101,8 +131,32 @@
     </div>
 </div>
 
+<!-- ===== FILÓ AI CHAT ===== -->
+<div id="ai-chat-window" class="ai-chat-window hidden">
+    <div class="ai-chat-header">
+        <img src="icons/icon-512.png" alt="FILÓ" class="mascot-img-sm">
+        <div class="ai-header-info">
+            <h3>Filó AI</h3>
+            <p>Online agora</p>
+        </div>
+        <button id="btn-close-chat" class="btn-icon-close">✕</button>
+    </div>
+    <div id="ai-chat-messages" class="ai-chat-messages">
+        <div class="ai-message bot">Olá! Eu sou a Filó, sua tutora de inglês. Em que posso te ajudar hoje? 🦫✨</div>
+    </div>
+    <div class="ai-chat-input-area">
+        <input type="text" id="ai-chat-input" placeholder="Pergunte algo em inglês...">
+        <button id="btn-send-ai">➔</button>
+    </div>
+</div>
+
+<button id="btn-open-chat" class="btn-float-chat" title="Falar com a Filó">
+    <img src="icons/icon-512.png" alt="FILÓ" class="mascot-img-chat">
+    <span class="chat-badge">AI</span>
+</button>
+
 <script src="lessons.js"></script>
-<script src="app.js"></script>
+<script type="module" src="app.js"></script>
 <script>
     if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {

@@ -2,6 +2,19 @@
 // APP.JS — English Learning App Core Logic
 // =====================================================
 
+import { auth, db } from './firebase-config.js';
+import { 
+    signInWithEmailAndPassword, 
+    createUserWithEmailAndPassword, 
+    onAuthStateChanged,
+    signOut
+} from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+import { 
+    setDoc, 
+    getDoc 
+} from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+import { askFilo } from './ai-service.js';
+
 // ── STATE ──────────────────────────────────────────
 let state = {
     xp: 0,
@@ -13,10 +26,13 @@ let state = {
     correctCount: 0,
     wrongCount: 0,
     wordOrderSelected: [],   // for word_order exercises
+    user: null,
+    isSignup: false,
 };
 
 // ── DOM REFS ────────────────────────────────────────
 const screens = {
+    auth:   document.getElementById('screen-auth'),
     home:   document.getElementById('screen-home'),
     lesson: document.getElementById('screen-lesson'),
     result: document.getElementById('screen-result'),
@@ -42,33 +58,67 @@ const els = {
     feedbackMessage:    document.getElementById('feedback-message'),
     feedbackDetail:     document.getElementById('feedback-detail'),
     btnNextExercise:    document.getElementById('btn-next-exercise'),
+    // Auth
+    authEmail:          document.getElementById('auth-email'),
+    authPassword:       document.getElementById('auth-password'),
+    btnAuthPrimary:     document.getElementById('btn-auth-primary'),
+    linkToggleAuth:     document.getElementById('link-toggle-auth'),
+    authForm:           document.getElementById('auth-form'),
+    authLoading:        document.getElementById('auth-loading'),
+    btnLogout:          document.getElementById('btn-logout'),
+    // AI Chat
+    btnOpenChat:       document.getElementById('btn-open-chat'),
+    btnCloseChat:      document.getElementById('btn-close-chat'),
+    chatWindow:        document.getElementById('ai-chat-window'),
+    chatMessages:      document.getElementById('ai-chat-messages'),
+    chatInput:         document.getElementById('ai-chat-input'),
+    btnSendAi:         document.getElementById('btn-send-ai'),
 };
 
 // ── PERSISTENCE ─────────────────────────────────────
 function saveState() {
-    localStorage.setItem('eng_xp',               state.xp);
-    localStorage.setItem('eng_streak',            state.streak);
-    localStorage.setItem('eng_lives',             state.lives);
-    localStorage.setItem('eng_last_play',         new Date().toDateString());
-    localStorage.setItem('eng_completed_lessons', JSON.stringify(state.completedLessons));
+    const data = {
+        xp:               state.xp,
+        streak:           state.streak,
+        lives:            state.lives,
+        lastPlay:         new Date().toDateString(),
+        completedLessons: state.completedLessons
+    };
+
+    localStorage.setItem('eng_state', JSON.stringify(data));
+
+    // Sync to Firebase if logged in
+    if (state.user) {
+        const userRef = doc(db, "users", state.user.uid);
+        setDoc(userRef, data, { merge: true }).catch(err => console.error("Sync error:", err));
+    }
 }
 
-function loadState() {
-    const lastPlay = localStorage.getItem('eng_last_play');
+async function loadState() {
+    let data = JSON.parse(localStorage.getItem('eng_state') || '{}');
+
+    // Sync from Firebase if logged in
+    if (state.user) {
+        try {
+            const userRef = doc(db, "users", state.user.uid);
+            const userSnap = await getDoc(userRef);
+            if (userSnap.exists()) {
+                data = userSnap.data();
+            }
+        } catch (err) { console.error("Load error:", err); }
+    }
+
+    const lastPlay = data.lastPlay;
     const today    = new Date().toDateString();
     const yesterday = new Date(Date.now() - 86400000).toDateString();
 
-    state.xp               = parseInt(localStorage.getItem('eng_xp')  || 0);
-    state.lives            = parseInt(localStorage.getItem('eng_lives') || 5);
-    state.completedLessons = JSON.parse(localStorage.getItem('eng_completed_lessons') || '[]');
+    state.xp               = parseInt(data.xp || 0);
+    state.lives            = parseInt(data.lives || 5);
+    state.completedLessons = data.completedLessons || [];
+    state.streak           = parseInt(data.streak || 0);
 
     // Streak logic
-    const savedStreak = parseInt(localStorage.getItem('eng_streak') || 0);
-    if (lastPlay === today) {
-        state.streak = savedStreak;
-    } else if (lastPlay === yesterday) {
-        state.streak = savedStreak; // Keep streak — first play of new day
-    } else {
+    if (lastPlay !== today && lastPlay !== yesterday && lastPlay) {
         state.streak = 0; // Streak broken
     }
 
@@ -363,7 +413,21 @@ function handleAnswer(correct, btn, ex) {
             });
         }
         showFeedback(false, ex);
+
+        // Smart explanation via AI
+        getAiExplanation(ex);
     }
+}
+
+async function getAiExplanation(ex) {
+    els.feedbackDetail.textContent = "Filó está pensando em uma explicação... 🦫";
+    const prompt = `O usuário errou um exercício de inglês. 
+        Tipo: ${ex.type}. 
+        Prompt: ${ex.prompt}. 
+        Resposta certa: ${ex.options ? ex.options.find(o => o.correct).text : 'N/A'}. 
+        Explique brevemente e de forma didática o porquê dessa resposta estar correta.`;
+    const explanation = await askFilo(prompt, "Explicando um erro de exercício");
+    els.feedbackDetail.textContent = explanation;
 }
 
 // ── FEEDBACK OVERLAY ─────────────────────────────────
@@ -474,7 +538,90 @@ els.btnContinueResult.addEventListener('click', () => {
     renderHome();
 });
 
-// ── INIT ─────────────────────────────────────────────
-loadState();
-showScreen('home');
-renderHome();
+// ── AUTH LOGIC ──────────────────────────────────────
+els.btnAuthPrimary.addEventListener('click', async () => {
+    const email = els.authEmail.value;
+    const pass  = els.authPassword.value;
+    
+    if (!email || !pass) return alert("Preencha todos os campos!");
+
+    els.authForm.classList.add('hidden');
+    els.authLoading.classList.remove('hidden');
+
+    try {
+        if (state.isSignup) {
+            await createUserWithEmailAndPassword(auth, email, pass);
+        } else {
+            await signInWithEmailAndPassword(auth, email, pass);
+        }
+    } catch (err) {
+        console.error(err);
+        alert("Erro: " + err.message);
+        els.authForm.classList.remove('hidden');
+        els.authLoading.classList.add('hidden');
+    }
+});
+
+els.linkToggleAuth.addEventListener('click', (e) => {
+    e.preventDefault();
+    state.isSignup = !state.isSignup;
+    els.btnAuthPrimary.textContent = state.isSignup ? "Cadastrar" : "Entrar";
+    els.linkToggleAuth.textContent = state.isSignup ? "Já tem conta? Entre" : "Ainda não tem conta? Cadastre-se";
+});
+
+els.btnLogout.addEventListener('click', () => {
+    if (confirm("Deseja realmente sair?")) {
+        signOut(auth).catch(err => console.error("Logout error:", err));
+    }
+});
+
+// ── FILÓ AI CHAT LOGIC ───────────────────────────────
+function appendMessage(role, text) {
+    const msg = document.createElement('div');
+    msg.className = `ai-message ${role}`;
+    msg.textContent = text;
+    els.chatMessages.appendChild(msg);
+    els.chatMessages.scrollTop = els.chatMessages.scrollHeight;
+}
+
+els.btnOpenChat.addEventListener('click', () => {
+    els.chatWindow.classList.toggle('hidden');
+    els.chatInput.focus();
+});
+
+els.btnCloseChat.addEventListener('click', () => els.chatWindow.classList.add('hidden'));
+
+const sendMessage = async () => {
+    const text = els.chatInput.value.trim();
+    if (!text) return;
+
+    appendMessage('user', text);
+    els.chatInput.value = '';
+
+    const botMsgPlaceholder = document.createElement('div');
+    botMsgPlaceholder.className = 'ai-message bot';
+    botMsgPlaceholder.textContent = '...';
+    els.chatMessages.appendChild(botMsgPlaceholder);
+    els.chatMessages.scrollTop = els.chatMessages.scrollHeight;
+
+    const response = await askFilo(text, "Conversa livre no chat");
+    botMsgPlaceholder.textContent = response;
+    els.chatMessages.scrollTop = els.chatMessages.scrollHeight;
+};
+
+els.btnSendAi.addEventListener('click', sendMessage);
+els.chatInput.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') sendMessage();
+});
+
+// ── INIT & AUTH STATE ───────────────────────────────
+onAuthStateChanged(auth, async (user) => {
+    state.user = user;
+    if (user) {
+        await loadState();
+        showScreen('home');
+        renderHome();
+    } else {
+        showScreen('auth');
+    }
+});
