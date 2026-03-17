@@ -150,6 +150,28 @@ function renderExercise() {
     if (exercise.type === 'multiple_choice') renderMultipleChoice(exercise);
     else if (exercise.type === 'fill_blank')  renderFillBlank(exercise);
     else if (exercise.type === 'word_order')  renderWordOrder(exercise);
+
+    // Auto-speak prompt if it's a new exercise
+    if (exercise.sentence) speak(exercise.sentence);
+    else if (exercise.word) speak(exercise.word);
+}
+
+function speak(text, btn = null) {
+    if (!window.speechSynthesis) return;
+    
+    // Stop any current speech
+    window.speechSynthesis.cancel();
+
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = 'en-US';
+    utterance.rate = 0.9; // Slightly slower for better clarity
+
+    if (btn) {
+        utterance.onstart = () => btn.classList.add('playing');
+        utterance.onend = () => btn.classList.remove('playing');
+    }
+
+    window.speechSynthesis.speak(utterance);
 }
 
 // ── MULTIPLE CHOICE ─────────────────────────────────
@@ -159,6 +181,7 @@ function renderMultipleChoice(ex) {
         <p class="exercise-prompt">${ex.prompt}</p>
         ${ex.word ? `
         <div class="word-card">
+            <button class="btn-audio" id="btn-speak-word">🔊</button>
             <div class="word-english">${ex.word}</div>
             <div class="word-pronunciation">${ex.pronunciation}</div>
             <div class="word-pronunciation-label">Como pronunciar</div>
@@ -176,6 +199,9 @@ function renderMultipleChoice(ex) {
         </div>
     `;
 
+    const speakBtn = document.getElementById('btn-speak-word');
+    if (speakBtn) speakBtn.addEventListener('click', () => speak(ex.word, speakBtn));
+
     document.querySelectorAll('.option-btn').forEach(btn => {
         btn.addEventListener('click', () => {
             const idx     = parseInt(btn.dataset.index);
@@ -191,6 +217,7 @@ function renderFillBlank(ex) {
     els.exerciseArea.innerHTML = `
         <p class="exercise-prompt">${ex.prompt}</p>
         <div class="fill-blank-sentence">
+            <button class="btn-audio" id="btn-speak-sentence">🔊</button>
             ${ex.sentence.replace('___', `<span class="blank" id="blank-display">___</span>`)}
         </div>
         <p class="fill-pronunciation">${ex.sentence_pronunciation}</p>
@@ -207,6 +234,9 @@ function renderFillBlank(ex) {
             `).join('')}
         </div>
     `;
+
+    const speakBtn = document.getElementById('btn-speak-sentence');
+    if (speakBtn) speakBtn.addEventListener('click', () => speak(ex.sentence.replace('___', ex.options.find(o => o.correct).text), speakBtn));
 
     document.querySelectorAll('.option-btn').forEach(btn => {
         btn.addEventListener('click', () => {
@@ -234,7 +264,10 @@ function renderWordOrder(ex) {
         <p class="exercise-prompt">${ex.prompt}</p>
         <p style="text-align:center; color: var(--text-secondary); font-size:0.9rem;">"${ex.translation}"</p>
         <div class="word-order-area">
-            <div class="word-order-sentence" id="wo-sentence"></div>
+            <div class="word-order-sentence-wrap">
+                 <button class="btn-audio" id="btn-speak-wo" style="margin: 0 0 10px 0;">🔊</button>
+                 <div class="word-order-sentence" id="wo-sentence"></div>
+            </div>
             <div class="word-order-bank" id="wo-bank">
                 ${ex.words.map((w, i) => `
                     <div class="word-chip" data-index="${i}">
@@ -246,6 +279,13 @@ function renderWordOrder(ex) {
         </div>
         <button class="btn-submit" id="btn-wo-submit" disabled>Verificar ✔</button>
     `;
+
+    const speakBtn = document.getElementById('btn-speak-wo');
+    if (speakBtn) speakBtn.addEventListener('click', () => {
+        const text = state.wordOrderSelected.map(idx => ex.words[idx].text).join(' ');
+        if (text) speak(text, speakBtn);
+        else speak(ex.translation, speakBtn); // fallback to something if empty
+    });
 
     // Shuffle chips display
     const bank = document.getElementById('wo-bank');

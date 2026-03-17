@@ -293,6 +293,41 @@ body {
     letter-spacing: 1px;
 }
 
+/* Audio Button */
+.btn-audio {
+    background: rgba(255, 255, 255, 0.1);
+    border: 2px solid var(--border);
+    border-radius: 50%;
+    width: 44px;
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    color: var(--yellow);
+    font-size: 1.2rem;
+    margin: 0 auto 10px;
+}
+.btn-audio:hover {
+    background: rgba(255, 217, 0, 0.15);
+    border-color: var(--yellow);
+    transform: scale(1.1);
+}
+.btn-audio:active {
+    transform: scale(0.95);
+}
+.btn-audio.playing {
+    animation: ripple 1s linear infinite;
+    color: white;
+    background: var(--yellow);
+}
+
+@keyframes ripple {
+    0% { box-shadow: 0 0 0 0 rgba(255, 217, 0, 0.4); }
+    100% { box-shadow: 0 0 0 15px rgba(255, 217, 0, 0); }
+}
+
 /* Options */
 .options-list {
     display: flex;
