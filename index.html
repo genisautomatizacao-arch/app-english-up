@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EnglishUp — Aprenda Inglês</title>
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#1a1a2e">
+    <link rel="apple-touch-icon" href="icons/icon-192.png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- ===== SCREEN 1: HOME / LESSON MAP ===== -->
+<div id="screen-home" class="screen active">
+    <header class="home-header">
+        <div class="header-stats">
+            <div class="stat-item">
+                <span class="stat-icon">🔥</span>
+                <span id="streak-count" class="stat-value">0</span>
+            </div>
+            <div class="mascot-badge">🦉</div>
+            <div class="stat-item">
+                <span class="stat-icon">⭐</span>
+                <span id="xp-count" class="stat-value">0</span>
+            </div>
+        </div>
+        <div class="lives-bar">
+            <div id="lives-display" class="lives-icons">❤️❤️❤️❤️❤️</div>
+        </div>
+    </header>
+
+    <main class="lesson-map">
+        <div class="section-title">
+            <span class="section-badge">📚</span>
+            <div>
+                <h2>Fase 1 — Iniciante</h2>
+                <p>8 módulos · 24 lições</p>
+            </div>
+        </div>
+        <div id="lessons-grid" class="lessons-grid">
+            <!-- Lesson nodes injected by app.js -->
+        </div>
+    </main>
+</div>
+
+<!-- ===== SCREEN 2: LESSON / EXERCISE ===== -->
+<div id="screen-lesson" class="screen">
+    <header class="lesson-header">
+        <button id="btn-close-lesson" class="btn-icon" title="Sair">✕</button>
+        <div class="lesson-progress-wrap">
+            <div class="lesson-progress-bar">
+                <div id="lesson-progress-fill" class="lesson-progress-fill"></div>
+            </div>
+        </div>
+        <div id="lesson-lives" class="lesson-lives">❤️❤️❤️❤️❤️</div>
+    </header>
+
+    <main class="exercise-area" id="exercise-area">
+        <!-- Exercise content injected by app.js -->
+    </main>
+</div>
+
+<!-- ===== SCREEN 3: LESSON RESULT ===== -->
+<div id="screen-result" class="screen">
+    <div class="result-container">
+        <div class="result-mascot">🦉</div>
+        <h1 id="result-title">Incrível!</h1>
+        <p id="result-subtitle" class="result-subtitle">Lição concluída</p>
+        <div class="result-stats-row">
+            <div class="result-stat">
+                <span class="result-stat-icon">⭐</span>
+                <span id="result-xp" class="result-stat-value">+20 XP</span>
+                <span class="result-stat-label">XP Ganho</span>
+            </div>
+            <div class="result-stat">
+                <span class="result-stat-icon">🎯</span>
+                <span id="result-accuracy" class="result-stat-value">80%</span>
+                <span class="result-stat-label">Precisão</span>
+            </div>
+            <div class="result-stat">
+                <span class="result-stat-icon">🔥</span>
+                <span id="result-streak" class="result-stat-value">1</span>
+                <span class="result-stat-label">Streak</span>
+            </div>
+        </div>
+        <button id="btn-continue-result" class="btn-primary btn-large">Continuar</button>
+    </div>
+</div>
+
+<!-- ===== FEEDBACK OVERLAY ===== -->
+<div id="feedback-overlay" class="feedback-overlay hidden">
+    <div id="feedback-content" class="feedback-content">
+        <div id="feedback-icon" class="feedback-icon">✔</div>
+        <div id="feedback-message" class="feedback-message"></div>
+        <div id="feedback-detail" class="feedback-detail"></div>
+        <button id="btn-next-exercise" class="btn-primary">Continuar</button>
+    </div>
+</div>
+
+<script src="lessons.js"></script>
+<script src="app.js"></script>
+<script>
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+            navigator.serviceWorker.register('sw.js')
+                .then(() => console.log('PWA Ready'))
+                .catch(err => console.error('SW Error:', err));
+        });
+    }
+</script>
+</body>
+</html>
