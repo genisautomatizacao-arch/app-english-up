@@ -566,7 +566,7 @@ els.linkToggleAuth.addEventListener('click', (e) => {
     e.preventDefault();
     state.isSignup = !state.isSignup;
     els.btnAuthPrimary.textContent = state.isSignup ? "Cadastrar" : "Entrar";
-    els.linkToggleAuth.textContent = state.isSignup ? "Já tem conta? Entre" : "Ainda não tem conta? Cadastre-se";
+    els.linkToggleAuth.textContent = state.isSignup ? "Entre" : "Cadastre-se";
 });
 
 els.btnLogout.addEventListener('click', () => {

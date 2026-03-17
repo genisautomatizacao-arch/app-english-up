@@ -42,6 +42,7 @@ body {
     flex-direction: column;
 }
 .screen.active { display: flex; }
+.hidden { display: none !important; }
 
 /* ===== AUTH SCREEN ===== */
 .auth-container {
