@@ -1,0 +1,40 @@
+{
+  "template": "twa",
+  "schemaVersion": 1,
+  "packageId": "com.genis.englishup",
+  "host": "app-english-up.vercel.app",
+  "name": "EnglishUp",
+  "launcherName": "EnglishUp",
+  "display": "standalone",
+  "themeColor": "#1A1A2E",
+  "navigationColor": "#0F0E17",
+  "navigationColorDark": "#0F0E17",
+  "navigationDividerColor": "#1A1A2E",
+  "navigationDividerColorDark": "#1A1A2E",
+  "backgroundColor": "#0F0E17",
+  "enableNotifications": false,
+  "startUrl": "/",
+  "iconUrl": "https://app-english-up.vercel.app/icons/icon-512.png",
+  "maskableIconUrl": "https://app-english-up.vercel.app/icons/icon-512.png",
+  "splashScreenFadeOutDuration": 300,
+  "signingKey": {
+    "path": "./android.keystore",
+    "alias": "android"
+  },
+  "appVersionName": "1.0.0",
+  "appVersionCode": 1,
+  "shortcuts": [],
+  "generatorApp": "bubblewrap-cli",
+  "webManifestUrl": "https://app-english-up.vercel.app/manifest.json",
+  "fallbackType": "customtabs",
+  "features": {},
+  "alphaDependencies": {
+    "enabled": false
+  },
+  "enableSiteSettingsShortcut": true,
+  "isChromeOSOnly": false,
+  "orientation": "portrait",
+  "fingerprints": [],
+  "additionalTrustedOrigins": [],
+  "retainedBundles": []
+}
