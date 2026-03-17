@@ -82,6 +82,13 @@ body {
     background: rgba(67, 97, 238, 0.05);
     box-shadow: 0 0 20px rgba(67, 97, 238, 0.1);
 }
+.input-info {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    margin-top: 5px;
+    padding-left: 2px;
+}
+.input-info span { font-weight: 800; color: var(--yellow); }
 .auth-toggle {
     text-align: center;
     margin-top: 20px;

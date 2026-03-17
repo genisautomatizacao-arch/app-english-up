@@ -61,6 +61,9 @@ const els = {
     // Auth
     authEmail:          document.getElementById('auth-email'),
     authPassword:       document.getElementById('auth-password'),
+    authConfirmPassword: document.getElementById('auth-confirm-password'),
+    groupConfirmPassword: document.getElementById('group-confirm-password'),
+    passwordCount:      document.getElementById('password-count'),
     btnAuthPrimary:     document.getElementById('btn-auth-primary'),
     linkToggleAuth:     document.getElementById('link-toggle-auth'),
     authForm:           document.getElementById('auth-form'),
@@ -542,8 +545,14 @@ els.btnContinueResult.addEventListener('click', () => {
 els.btnAuthPrimary.addEventListener('click', async () => {
     const email = els.authEmail.value;
     const pass  = els.authPassword.value;
+    const confirmPass = els.authConfirmPassword.value;
     
     if (!email || !pass) return alert("Preencha todos os campos!");
+    
+    if (state.isSignup) {
+        if (pass.length < 6) return alert("A senha deve ter pelo menos 6 caracteres!");
+        if (pass !== confirmPass) return alert("As senhas não coincidem!");
+    }
 
     els.authForm.classList.add('hidden');
     els.authLoading.classList.remove('hidden');
@@ -567,6 +576,17 @@ els.linkToggleAuth.addEventListener('click', (e) => {
     state.isSignup = !state.isSignup;
     els.btnAuthPrimary.textContent = state.isSignup ? "Cadastrar" : "Entrar";
     els.linkToggleAuth.textContent = state.isSignup ? "Entre" : "Cadastre-se";
+    
+    // Toggle confirm password field
+    if (state.isSignup) {
+        els.groupConfirmPassword.classList.remove('hidden');
+    } else {
+        els.groupConfirmPassword.classList.add('hidden');
+    }
+});
+
+els.authPassword.addEventListener('input', () => {
+    els.passwordCount.textContent = els.authPassword.value.length;
 });
 
 els.btnLogout.addEventListener('click', () => {
