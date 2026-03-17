@@ -10,12 +10,13 @@ import { getAuth } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth
 import { getFirestore } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
 const firebaseConfig = {
-    apiKey: "YOUR_API_KEY",
-    authDomain: "YOUR_AUTH_DOMAIN",
-    projectId: "YOUR_PROJECT_ID",
-    storageBucket: "YOUR_STORAGE_BUCKET",
-    messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-    appId: "YOUR_APP_ID"
+    apiKey: "AIzaSyDxq1slMml72MOxttj5UUjjpGnULmsjOhY",
+    authDomain: "filo-app-fd121.firebaseapp.com",
+    projectId: "filo-app-fd121",
+    storageBucket: "filo-app-fd121.firebasestorage.app",
+    messagingSenderId: "485162737274",
+    appId: "1:485162737274:web:2acaf39cda16586ed565c3",
+    measurementId: "G-HC174B3RSM"
 };
 
 // Initialize Firebase

@@ -2,7 +2,7 @@
 // AI-SERVICE.JS — Gemini AI Integration
 // =====================================================
 
-const GEMINI_API_KEY = "YOUR_GEMINI_API_KEY";
+const GEMINI_API_KEY = "AIzaSyDvLV6Tath-z3Q3CPtYhyeBM-jZ1FQeTGE";
 const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`;
 
 export async function askFilo(prompt, context = "") {
