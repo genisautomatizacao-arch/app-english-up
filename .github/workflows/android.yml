@@ -33,8 +33,11 @@ jobs:
         run: echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 --decode > android.keystore
 
       - name: Build Android App Bundle
+        env:
+          BUBBLEWRAP_KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          BUBBLEWRAP_KEY_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
         run: |
-          echo "no" | bubblewrap build --signingKeyPath=./android.keystore --signingKeyPassword="${{ secrets.KEYSTORE_PASSWORD }}" --signingKeyAlias="android" --signingKeyAliasPassword="${{ secrets.KEYSTORE_PASSWORD }}" --skip-sdk-checks
+          echo "no" | bubblewrap build --signingKeyPath=./android.keystore --signingKeyAlias="android" --skip-sdk-checks
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
