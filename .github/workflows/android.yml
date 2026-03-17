@@ -31,7 +31,7 @@ jobs:
 
       - name: Build Android App Bundle
         run: |
-          bubblewrap build --signingKeyPath=./android.keystore --signingKeyPassword="${{ secrets.KEYSTORE_PASSWORD }}" --signingKeyAlias="android" --signingKeyAliasPassword="${{ secrets.KEYSTORE_PASSWORD }}"
+          yes | bubblewrap build --signingKeyPath=./android.keystore --signingKeyPassword="${{ secrets.KEYSTORE_PASSWORD }}" --signingKeyAlias="android" --signingKeyAliasPassword="${{ secrets.KEYSTORE_PASSWORD }}"
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
