@@ -12,7 +12,14 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 import { 
     setDoc, 
-    getDoc 
+    getDoc,
+    collection,
+    addDoc,
+    getDocs,
+    query,
+    orderBy,
+    limit,
+    serverTimestamp
 } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 import { askFilo } from './ai-service.js';
 
@@ -627,12 +634,50 @@ els.btnLogout.addEventListener('click', () => {
 });
 
 // ── FILÓ AI CHAT LOGIC ───────────────────────────────
-function addChatMessage(text, role) {
+function addChatMessage(text, role, save = true) {
     const msg = document.createElement('div');
     msg.className = `ai-message ${role}`;
     msg.textContent = text;
     els.aiChatMessages.appendChild(msg);
     els.aiChatMessages.scrollTop = els.aiChatMessages.scrollHeight;
+
+    if (save && state.user) {
+        saveMessageToFirestore(text, role);
+    }
+}
+
+async function saveMessageToFirestore(text, role) {
+    try {
+        const chatRef = collection(db, "users", state.user.uid, "chat_history");
+        await addDoc(chatRef, {
+            text,
+            role,
+            timestamp: serverTimestamp()
+        });
+    } catch (err) {
+        console.error("Error saving chat:", err);
+    }
+}
+
+async function loadChatHistory() {
+    if (!state.user) return;
+    try {
+        const chatRef = collection(db, "users", state.user.uid, "chat_history");
+        const q = query(chatRef, orderBy("timestamp", "asc"), limit(50));
+        const querySnapshot = await getDocs(q);
+        
+        // Clear default welcome if history exists
+        if (!querySnapshot.empty) {
+            els.aiChatMessages.innerHTML = '';
+        }
+        
+        querySnapshot.forEach((doc) => {
+            const data = doc.data();
+            addChatMessage(data.text, data.role, false); // false to not re-save
+        });
+    } catch (err) {
+        console.error("Error loading chat:", err);
+    }
 }
 
 els.btnOpenChat.addEventListener('click', () => {
@@ -657,7 +702,10 @@ const sendMessage = async () => {
 
     const context = `O usuário está na lição de ${state.currentCategory}. XP atual: ${state.xp}. Nome: ${state.user ? state.user.displayName : 'aluno'}.`;
     const response = await askFilo(userMessage, context);
-    botMsgPlaceholder.textContent = response;
+    
+    // Remove placeholder and add real message (which will save it)
+    botMsgPlaceholder.remove();
+    addChatMessage(response, 'bot');
     els.aiChatMessages.scrollTop = els.aiChatMessages.scrollHeight;
 
     // Auto voice if active
@@ -717,6 +765,7 @@ onAuthStateChanged(auth, async (user) => {
     state.user = user;
     if (user) {
         await loadState();
+        await loadChatHistory();
         showScreen('home');
         renderHome();
         els.btnOpenChat.style.display = 'flex';
