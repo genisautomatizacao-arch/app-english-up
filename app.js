@@ -719,7 +719,10 @@ onAuthStateChanged(auth, async (user) => {
         await loadState();
         showScreen('home');
         renderHome();
+        els.btnOpenChat.style.display = 'flex';
     } else {
         showScreen('auth');
+        els.btnOpenChat.style.display = 'none';
+        els.aiChatWindow.classList.add('hidden'); // Close chat if logout
     }
 });

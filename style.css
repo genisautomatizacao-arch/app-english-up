@@ -742,20 +742,22 @@ body {
 /* ===== AI CHAT ===== */
 .btn-float-chat {
     position: fixed;
-    bottom: 24px;
-    right: 24px;
-    width: 64px;
-    height: 64px;
-    background: var(--bg-card);
-    border: 2px solid var(--blue);
-    border-radius: 50%;
+    bottom: 20px;
+    right: 20px;
+    width: 60px;
+    height: 60px;
+    background: linear-gradient(135deg, var(--blue), var(--blue-dark));
+    color: white;
+    font-size: 1.2rem;
+    font-weight: bold;
+    border: none;
     cursor: pointer;
-    box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+    box-shadow: 0 4px 15px rgba(67, 97, 238, 0.4);
     z-index: 1000;
-    display: flex;
+    display: none; /* Hide by default */
     align-items: center;
     justify-content: center;
-    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    transition: transform 0.2s, background 0.2s;
 }
 .btn-float-chat:hover { transform: scale(1.1) translateY(-5px); box-shadow: 0 12px 40px var(--green-glow); }
 .mascot-img-chat { width: 50px; height: 50px; border-radius: 50%; object-fit: cover; }
