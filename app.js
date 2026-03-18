@@ -563,11 +563,23 @@ els.btnAuthPrimary.addEventListener('click', async () => {
         } else {
             await signInWithEmailAndPassword(auth, email, pass);
         }
-    } catch (err) {
-        console.error(err);
-        alert("Erro: " + err.message);
+    } catch (error) {
+        console.error("Erro Auth:", error);
+        
+        // Hide loading and show form again
         els.authForm.classList.remove('hidden');
         els.authLoading.classList.add('hidden');
+        
+        let msg = "Erro ao autenticar.";
+        if (error.code === 'auth/configuration-not-found') {
+            msg = "Erro: O login por E-mail não foi ativado no Console do Firebase. Por favor, siga as instruções no guia.";
+        } else if (error.code === 'auth/invalid-credential') {
+            msg = "E-mail ou senha incorretos.";
+        } else if (error.code === 'auth/email-already-in-use') {
+            msg = "Este e-mail já está em uso.";
+        }
+        
+        alert(msg);
     }
 });
 
