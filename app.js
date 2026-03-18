@@ -2,12 +2,13 @@
 // APP.JS — English Learning App Core Logic
 // =====================================================
 
-import { auth, db } from './firebase-config.js';
+import { auth, db, googleProvider } from "./firebase-config.js";
 import { 
-    signInWithEmailAndPassword, 
     createUserWithEmailAndPassword, 
-    onAuthStateChanged,
-    signOut
+    signInWithEmailAndPassword, 
+    onAuthStateChanged, 
+    signOut,
+    signInWithPopup
 } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 import { 
     setDoc, 
@@ -65,6 +66,7 @@ const els = {
     groupConfirmPassword: document.getElementById('group-confirm-password'),
     passwordCount:      document.getElementById('password-count'),
     btnAuthPrimary:     document.getElementById('btn-auth-primary'),
+    btnGoogle:          document.getElementById('btn-google'),
     linkToggleAuth:     document.getElementById('link-toggle-auth'),
     authForm:           document.getElementById('auth-form'),
     authLoading:        document.getElementById('auth-loading'),
@@ -580,6 +582,19 @@ els.btnAuthPrimary.addEventListener('click', async () => {
         }
         
         alert(msg);
+    }
+});
+
+els.btnGoogle.addEventListener('click', async () => {
+    try {
+        els.authForm.classList.add('hidden');
+        els.authLoading.classList.remove('hidden');
+        await signInWithPopup(auth, googleProvider);
+    } catch (error) {
+        console.error("Erro Google Auth:", error);
+        els.authForm.classList.remove('hidden');
+        els.authLoading.classList.add('hidden');
+        alert("Erro ao entrar com Google: " + error.message);
     }
 });
 
