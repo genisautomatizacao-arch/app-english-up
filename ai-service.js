@@ -3,7 +3,7 @@
 // =====================================================
 
 const GEMINI_API_KEY = "AIzaSyA3bKIfHpl0lHnPYeIsxgcEyAJEkwt-QE4";
-const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`;
+const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${GEMINI_API_KEY}`;
 
 export async function askFilo(prompt, context = "") {
     if (GEMINI_API_KEY === "YOUR_GEMINI_API_KEY") {
