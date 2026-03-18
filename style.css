@@ -803,6 +803,28 @@ body {
 .ai-header-info p { font-size: 0.75rem; color: var(--green); margin: 0; }
 .btn-icon-close { background: transparent; border: none; color: var(--text-muted); cursor: pointer; margin-left: auto; font-size: 1.1rem; }
 
+.chat-header-actions {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+#btn-voice-toggle {
+    background: none;
+    border: none;
+    font-size: 1.2rem;
+    cursor: pointer;
+    transition: transform 0.2s;
+    filter: grayscale(1);
+    opacity: 0.6;
+}
+
+#btn-voice-toggle.active {
+    filter: grayscale(0);
+    opacity: 1;
+    transform: scale(1.1);
+}
+
 .ai-chat-messages {
     flex: 1;
     padding: 16px;
@@ -855,6 +877,31 @@ body {
     border-radius: 50%;
     cursor: pointer;
 }
+.ai-chat-input-area button:hover { background: var(--blue-dark); }
+
+.btn-mic {
+    background: none !important;
+    border: none !important;
+    font-size: 1.2rem;
+    cursor: pointer;
+    padding: 0 10px;
+    transition: transform 0.2s;
+}
+
+.btn-mic:hover { transform: scale(1.1); }
+
+.btn-mic.recording {
+    color: var(--red);
+    animation: pulse-red 1.5s infinite;
+}
+
+@keyframes pulse-red {
+    0% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(1.2); opacity: 0.7; }
+    100% { transform: scale(1); opacity: 1; }
+}
+
+/* Scrollbar para o Chat */
 
 @media (max-width: 480px) {
     .ai-chat-window {

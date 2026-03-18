@@ -28,7 +28,9 @@ let state = {
     wrongCount: 0,
     wordOrderSelected: [],   // for word_order exercises
     user: null,
-    isSignup: false,
+    isSignup:       false,
+    isRecording:    false,
+    isVoiceActive:  false,
 };
 
 // ── DOM REFS ────────────────────────────────────────
@@ -72,12 +74,14 @@ const els = {
     authLoading:        document.getElementById('auth-loading'),
     btnLogout:          document.getElementById('btn-logout'),
     // AI Chat
-    btnOpenChat:       document.getElementById('btn-open-chat'),
-    btnCloseChat:      document.getElementById('btn-close-chat'),
-    chatWindow:        document.getElementById('ai-chat-window'),
-    chatMessages:      document.getElementById('ai-chat-messages'),
-    chatInput:         document.getElementById('ai-chat-input'),
-    btnSendAi:         document.getElementById('btn-send-ai'),
+    aiChatWindow:       document.getElementById('ai-chat-window'),
+    aiChatMessages:     document.getElementById('ai-chat-messages'),
+    aiInput:            document.getElementById('ai-input'),
+    btnSendChat:        document.getElementById('btn-send-chat'),
+    btnOpenChat:        document.querySelector('.btn-float-chat'),
+    btnCloseChat:       document.getElementById('btn-close-chat'),
+    btnMic:             document.getElementById('btn-mic'),
+    btnVoiceToggle:     document.getElementById('btn-voice-toggle'),
 };
 
 // ── PERSISTENCE ─────────────────────────────────────
@@ -623,43 +627,90 @@ els.btnLogout.addEventListener('click', () => {
 });
 
 // ── FILÓ AI CHAT LOGIC ───────────────────────────────
-function appendMessage(role, text) {
+function addChatMessage(text, role) {
     const msg = document.createElement('div');
     msg.className = `ai-message ${role}`;
     msg.textContent = text;
-    els.chatMessages.appendChild(msg);
-    els.chatMessages.scrollTop = els.chatMessages.scrollHeight;
+    els.aiChatMessages.appendChild(msg);
+    els.aiChatMessages.scrollTop = els.aiChatMessages.scrollHeight;
 }
 
 els.btnOpenChat.addEventListener('click', () => {
-    els.chatWindow.classList.toggle('hidden');
-    els.chatInput.focus();
+    els.aiChatWindow.classList.toggle('hidden');
+    els.aiInput.focus();
 });
 
-els.btnCloseChat.addEventListener('click', () => els.chatWindow.classList.add('hidden'));
+els.btnCloseChat.addEventListener('click', () => els.aiChatWindow.classList.add('hidden'));
 
 const sendMessage = async () => {
-    const text = els.chatInput.value.trim();
-    if (!text) return;
+    const userMessage = els.aiInput.value.trim();
+    if (!userMessage) return;
 
-    appendMessage('user', text);
-    els.chatInput.value = '';
+    addChatMessage(userMessage, 'user');
+    els.aiInput.value = '';
 
     const botMsgPlaceholder = document.createElement('div');
     botMsgPlaceholder.className = 'ai-message bot';
     botMsgPlaceholder.textContent = '...';
-    els.chatMessages.appendChild(botMsgPlaceholder);
-    els.chatMessages.scrollTop = els.chatMessages.scrollHeight;
+    els.aiChatMessages.appendChild(botMsgPlaceholder);
+    els.aiChatMessages.scrollTop = els.aiChatMessages.scrollHeight;
 
-    const response = await askFilo(text, "Conversa livre no chat");
+    const context = `O usuário está na lição de ${state.currentCategory}. XP atual: ${state.xp}. Nome: ${state.user ? state.user.displayName : 'aluno'}.`;
+    const response = await askFilo(userMessage, context);
     botMsgPlaceholder.textContent = response;
-    els.chatMessages.scrollTop = els.chatMessages.scrollHeight;
+    els.aiChatMessages.scrollTop = els.aiChatMessages.scrollHeight;
+
+    // Auto voice if active
+    if (state.isVoiceActive) speak(response);
 };
 
-els.btnSendAi.addEventListener('click', sendMessage);
-els.chatInput.addEventListener('keypress', (e) => {
+els.btnSendChat.addEventListener('click', sendMessage);
+els.aiInput.addEventListener('keypress', (e) => {
     if (e.key === 'Enter') sendMessage();
 });
+
+// Voice Toggle
+els.btnVoiceToggle.addEventListener('click', () => {
+    state.isVoiceActive = !state.isVoiceActive;
+    els.btnVoiceToggle.classList.toggle('active', state.isVoiceActive);
+    els.btnVoiceToggle.textContent = state.isVoiceActive ? "🔊" : "🔇";
+});
+
+// Speech Recognition (STT)
+const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+if (SpeechRecognition) {
+    const recognition = new SpeechRecognition();
+    recognition.lang = 'en-US'; // Default to English for practice
+    recognition.interimResults = false;
+
+    recognition.onstart = () => {
+        state.isRecording = true;
+        els.btnMic.classList.add('recording');
+    };
+
+    recognition.onresult = (event) => {
+        const transcript = event.results[0][0].transcript;
+        els.aiInput.value = transcript;
+        sendMessage();
+    };
+
+    recognition.onend = () => {
+        state.isRecording = false;
+        els.btnMic.classList.remove('recording');
+    };
+
+    els.btnMic.addEventListener('click', () => {
+        if (state.isRecording) {
+            recognition.stop();
+        } else {
+            // Check if user wants to speak in PT or EN based on context? 
+            // Standardizing to auto-detect or just EN-US for the app's purpose.
+            recognition.start();
+        }
+    });
+} else {
+    els.btnMic.style.display = 'none';
+}
 
 // ── INIT & AUTH STATE ───────────────────────────────
 onAuthStateChanged(auth, async (user) => {

@@ -147,18 +147,24 @@
 <div id="ai-chat-window" class="ai-chat-window hidden">
     <div class="ai-chat-header">
         <img src="icons/icon-512.png" alt="FILÓ" class="mascot-img-sm">
-        <div class="ai-header-info">
-            <h3>Filó AI</h3>
-            <p>Online agora</p>
-        </div>
-        <button id="btn-close-chat" class="btn-icon-close">✕</button>
+            <div class="chat-header">
+                <div>
+                    <strong>Filó AI</strong>
+                    <p>Online agora</p>
+                </div>
+                <div class="chat-header-actions">
+                    <button id="btn-voice-toggle" title="Voz da Filó">🔊</button>
+                    <button id="btn-close-chat" class="btn-close-chat">×</button>
+                </div>
+            </div>
     </div>
     <div id="ai-chat-messages" class="ai-chat-messages">
         <div class="ai-message bot">Olá! Eu sou a Filó, sua tutora de inglês. Em que posso te ajudar hoje? 🦫✨</div>
     </div>
-    <div class="ai-chat-input-area">
-        <input type="text" id="ai-chat-input" placeholder="Pergunte algo em inglês...">
-        <button id="btn-send-ai">➔</button>
+    <div class="chat-input-container">
+        <input type="text" id="ai-input" placeholder="Pergunte algo em inglês...">
+        <button id="btn-mic" class="btn-mic" title="Falar">🎤</button>
+        <button id="btn-send-chat" class="btn-send-chat">➔</button>
     </div>
 </div>
 
