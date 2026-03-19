@@ -1,4 +1,4 @@
-const KEY = "AIzaSyD8xYCzqfQLG3RAVlIO02ohfCE9vTsK22w";
+const KEY = "AIzaSyC2jOZPKZ4hxVUi43gA9jL_crkT2bwcpGg";
 const MODEL = "gemini-flash-latest";
 const URL = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${KEY}`;
 

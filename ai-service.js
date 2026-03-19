@@ -2,8 +2,33 @@
 // AI-SERVICE.JS — Gemini AI Integration
 // =====================================================
 
-const GEMINI_API_KEY = "AIzaSyD8xYCzqfQLG3RAVlIO02ohfCE9vTsK22w";
+const GEMINI_API_KEY = "AIzaSyC2jOZPKZ4hxVUi43gA9jL_crkT2bwcpGg";
 const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${GEMINI_API_KEY}`;
+
+async function fetchWithRetry(url, options, maxRetries = 3) {
+    let delay = 1000;
+    for (let i = 0; i < maxRetries; i++) {
+        try {
+            const response = await fetch(url, options);
+            if (response.ok) return response;
+            if (response.status === 429) { // Rate limit
+                console.warn(`Rate limit hit, retrying in ${delay}ms...`);
+            } else {
+                const errData = await response.json().catch(() => ({}));
+                if (errData.error?.message?.includes("API key was reported as leaked")) {
+                    throw new Error("API_KEY_LEAKED");
+                }
+            }
+        } catch (err) {
+            if (err.message === "API_KEY_LEAKED") throw err;
+            if (i === maxRetries - 1) throw err;
+            console.warn(`Fetch attempt ${i + 1} failed, retrying...`, err);
+        }
+        await new Promise(res => setTimeout(res, delay));
+        delay *= 2;
+    }
+    throw new Error("FALHA_APOS_REPETICOES");
+}
 
 export async function askFilo(prompt, context = "") {
     if (GEMINI_API_KEY === "YOUR_GEMINI_API_KEY") {
@@ -23,7 +48,7 @@ export async function askFilo(prompt, context = "") {
     `;
 
     try {
-        const response = await fetch(API_URL, {
+        const response = await fetchWithRetry(API_URL, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -100,12 +125,15 @@ export async function generateLesson(theme, moduleLevel = 1, userXp = 0) {
     Gere 5 exercícios variados e didáticos. Retorne APENAS o JSON.`;
 
     try {
-        const response = await fetch(API_URL, {
+        const response = await fetchWithRetry(API_URL, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 contents: [{ parts: [{ text: prompt }] }],
-                generationConfig: { response_mime_type: "application/json" }
+                generationConfig: { 
+                    response_mime_type: "application/json",
+                    temperature: 0.7 
+                }
             })
         });
 
@@ -116,6 +144,9 @@ export async function generateLesson(theme, moduleLevel = 1, userXp = 0) {
         return JSON.parse(content);
     } catch (err) {
         console.error("Erro ao gerar lição:", err);
+        if (err.message === "API_KEY_LEAKED") {
+            alert("ERRO DE SEGURANÇA: A chave de API expirou ou vazou. Por favor, contate o suporte ou atualize a chave!");
+        }
         return null; // Fallback handled in app.js
     }
 }

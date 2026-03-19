@@ -146,25 +146,37 @@
 <!-- ===== FILÓ AI CHAT ===== -->
 <div id="ai-chat-window" class="ai-chat-window hidden">
     <div class="ai-chat-header">
-        <img src="icons/icon-512.png" alt="FILÓ" class="mascot-img-sm">
-            <div class="chat-header">
-                <div>
-                    <strong>Filó AI</strong>
-                    <p>Online agora</p>
-                </div>
-                <div class="chat-header-actions">
-                    <button id="btn-voice-toggle" title="Voz da Filó">🔊</button>
-                    <button id="btn-close-chat" class="btn-close-chat">×</button>
-                </div>
+        <div class="chat-header-info">
+            <img src="icons/icon-512.png" alt="FILÓ" class="mascot-img-sm">
+            <div>
+                <strong>Filó AI</strong>
+                <span class="status-indicator">Online agora</span>
             </div>
+        </div>
+        <div class="chat-header-actions">
+            <button id="btn-voice-toggle" class="btn-chat-action" title="Voz da Filó">🔊</button>
+            <button id="btn-close-chat" class="btn-chat-action">✕</button>
+        </div>
     </div>
     <div id="ai-chat-messages" class="ai-chat-messages">
         <div class="ai-message bot">Olá! Eu sou a Filó, sua tutora de inglês. Em que posso te ajudar hoje? 🦫✨</div>
     </div>
-    <div class="chat-input-container">
-        <input type="text" id="ai-input" placeholder="Pergunte algo em inglês...">
-        <button id="btn-mic" class="btn-mic" title="Falar">🎤</button>
-        <button id="btn-send-chat" class="btn-send-chat">➔</button>
+    <div id="ai-typing" class="ai-typing hidden">
+        <span></span><span></span><span></span>
+        <small>Filó está pensando...</small>
+    </div>
+    <div id="recording-status" class="recording-status hidden">
+        <div class="recording-pulse"></div>
+        <span>Filó está ouvindo você...</span>
+    </div>
+    <div class="chat-input-area">
+        <div class="chat-input-wrapper">
+            <input type="text" id="ai-input" placeholder="Pergunte algo em inglês...">
+            <button id="btn-mic" class="btn-mic-circle" title="Falar com a Filó">
+                <span class="mic-icon">🎤</span>
+            </button>
+        </div>
+        <button id="btn-send-chat" class="btn-send-circle">➔</button>
     </div>
 </div>
 
@@ -173,7 +185,7 @@
     <span class="chat-badge">AI</span>
 </button>
 
-<script type="module" src="app.js?v=1.5"></script>
+<script type="module" src="app.js?v=5.0"></script>
 <script>
     if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {

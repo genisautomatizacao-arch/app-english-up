@@ -92,6 +92,8 @@ const els = {
     btnCloseChat:       document.getElementById('btn-close-chat'),
     btnMic:             document.getElementById('btn-mic'),
     btnVoiceToggle:     document.getElementById('btn-voice-toggle'),
+    aiTyping:           document.getElementById('ai-typing'),
+    recordingStatus:    document.getElementById('recording-status'),
 };
 
 // ── PERSISTENCE ─────────────────────────────────────
@@ -206,24 +208,39 @@ async function startLesson(id) {
     state.wrongCount = 0;
     state.lives = 5;
 
-    // IF AI LESSON: Generate on the fly
+    // IF AI LESSON: Hybrid Pool Logic
     if (lesson.isAi) {
         // Show loading state
         els.exerciseArea.innerHTML = `
             <div style="text-align:center; padding: 40px;">
                 <div class="mascot-badge" style="font-size: 5rem;">🦫✨</div>
-                <h2 style="margin-top:20px;">Filó está criando sua lição personalizada...</h2>
-                <p style="color: var(--text-secondary);">Isso leva apenas alguns segundos!</p>
+                <h2 style="margin-top:20px;">Filó está preparando sua lição...</h2>
+                <p style="color: var(--text-secondary);">Buscando o melhor conteúdo para você!</p>
                 <div class="spinner" style="margin: 20px auto;"></div>
             </div>
         `;
         showScreen('lesson');
+
+        // 1. Try to get from Pool first (Rotation)
+        let exercises = await getLessonFromPool(lesson.module, lesson.theme);
         
-        const aiData = await generateLesson(lesson.theme, lesson.module, state.xp);
-        if (aiData && aiData.exercises && aiData.exercises.length > 0) {
-            state.currentLesson = { ...lesson, exercises: aiData.exercises };
+        if (!exercises) {
+            console.log("Pool empty for this theme, generating with AI...");
+            const aiData = await generateLesson(lesson.theme, lesson.module, state.xp);
+            if (aiData && aiData.exercises && aiData.exercises.length > 0) {
+                exercises = aiData.exercises;
+                // 2. Save to Pool for future users
+                saveLessonToPool(lesson.module, lesson.theme, exercises);
+            }
         } else {
-            alert("A Filó não conseguiu criar essa lição agora. Verifique sua conexão!");
+            console.log("Loaded exercises from Pool (Hybrid System)");
+        }
+
+        if (exercises && exercises.length > 0) {
+            // Shuffle exercises for rotation
+            state.currentLesson = { ...lesson, exercises: exercises.sort(() => Math.random() - 0.5) };
+        } else {
+            alert("A Filó não conseguiu carregar essa lição agora. Verifique sua conexão!");
             showScreen('home');
             return;
         }
@@ -235,6 +252,41 @@ async function startLesson(id) {
     updateLessonProgress();
     renderLives(state.lives, els.lessonLives);
     renderExercise();
+}
+
+async function getLessonFromPool(moduleId, theme) {
+    try {
+        const poolRef = collection(db, "exercises_pool");
+        const q = query(poolRef, where("module", "==", moduleId), where("theme", "==", theme), limit(5));
+        const querySnapshot = await getDocs(q);
+        
+        if (!querySnapshot.empty) {
+            // Pick a random set from the pool results
+            const randomIndex = Math.floor(Math.random() * querySnapshot.docs.length);
+            return querySnapshot.docs[randomIndex].data().exercises;
+        }
+    } catch (err) {
+        console.error("Error fetching from pool:", err);
+    }
+    return null;
+}
+
+async function saveLessonToPool(moduleId, theme, exercises) {
+    try {
+        const poolRef = collection(db, "exercises_pool");
+        // We only save if the set is valid
+        if (exercises && exercises.length >= 3) {
+            await addDoc(poolRef, {
+                module: moduleId,
+                theme: theme,
+                exercises: exercises,
+                createdAt: serverTimestamp()
+            });
+            console.log("New exercise set saved to Pool!");
+        }
+    } catch (err) {
+        console.error("Error saving to pool:", err);
+    }
 }
 
 function updateLessonProgress() {
@@ -783,17 +835,16 @@ const sendMessage = async () => {
     addChatMessage(userMessage, 'user');
     els.aiInput.value = '';
 
-    const botMsgPlaceholder = document.createElement('div');
-    botMsgPlaceholder.className = 'ai-message bot';
-    botMsgPlaceholder.textContent = '...';
-    els.aiChatMessages.appendChild(botMsgPlaceholder);
+    // Show typing indicator
+    els.aiTyping.classList.remove('hidden');
     els.aiChatMessages.scrollTop = els.aiChatMessages.scrollHeight;
 
     const context = `O usuário está na lição de ${state.currentCategory}. XP atual: ${state.xp}. Nome: ${state.user ? state.user.displayName : 'aluno'}.`;
     const response = await askFilo(userMessage, context);
     
-    // Remove placeholder and add real message (which will save it)
-    botMsgPlaceholder.remove();
+    // Hide typing indicator
+    els.aiTyping.classList.add('hidden');
+    
     addChatMessage(response, 'bot');
     els.aiChatMessages.scrollTop = els.aiChatMessages.scrollHeight;
 
@@ -823,6 +874,7 @@ if (SpeechRecognition) {
     recognition.onstart = () => {
         state.isRecording = true;
         els.btnMic.classList.add('recording');
+        els.recordingStatus.classList.remove('hidden');
     };
 
     recognition.onresult = (event) => {
@@ -834,6 +886,7 @@ if (SpeechRecognition) {
     recognition.onend = () => {
         state.isRecording = false;
         els.btnMic.classList.remove('recording');
+        els.recordingStatus.classList.add('hidden');
     };
 
     els.btnMic.addEventListener('click', () => {
