@@ -1,0 +1,8 @@
+[{
+  "relation": ["delegate_permission/common.handle_all_urls"],
+  "target": {
+    "namespace": "android_app",
+    "package_name": "com.genis.englishup",
+    "sha256_cert_fingerprints": ["80:07:9D:77:F0:0A:1B:BD:43:60:74:C5:BE:5F:BF:3F:76:29:A1:02:97:66:2C:38:5E"]
+  }
+}]
