@@ -3,6 +3,6 @@
   "target": {
     "namespace": "android_app",
     "package_name": "com.genis.englishup",
-    "sha256_cert_fingerprints": ["9D:0C:78:95:1E:32:FC:A5:4D:74:9C:7B:5D:EB:AB:41:55:F1:4D:A0:B6:33:85:9E:BB:F1:56:47:FB:BD:5C:9D"]
+    "sha256_cert_fingerprints": ["80:07:9D:77:F0:0A:1B:BD:43:60:74:C5:BE:5F:BF:3F:76:29:A1:02:97:66:2C:38:5B:F1:1C:DB:93:C5:91:33"]
   }
 }]
