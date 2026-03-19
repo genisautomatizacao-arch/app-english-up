@@ -13,15 +13,18 @@ import {
 import { 
     setDoc, 
     getDoc,
+    doc,
     collection,
     addDoc,
     getDocs,
     query,
+    where,
     orderBy,
     limit,
     serverTimestamp
 } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
-import { askFilo } from './ai-service.js';
+import { askFilo, generateLesson } from './ai-service.js?v=4.0';
+import { LESSONS } from './lessons.js';
 
 // ── STATE ──────────────────────────────────────────
 let state = {
@@ -93,15 +96,17 @@ const els = {
 
 // ── PERSISTENCE ─────────────────────────────────────
 function saveState() {
+    const today = new Date().toDateString();
     const data = {
         xp:               state.xp,
         streak:           state.streak,
         lives:            state.lives,
-        lastPlay:         new Date().toDateString(),
+        lastPlay:         today,
         completedLessons: state.completedLessons
     };
 
     localStorage.setItem('eng_state', JSON.stringify(data));
+    localStorage.setItem('eng_last_play', today); // Also save separately for finishLesson logic
 
     // Sync to Firebase if logged in
     if (state.user) {
@@ -160,7 +165,10 @@ function renderHome() {
     els.lessonsGrid.innerHTML = '';
     LESSONS.forEach((lesson, idx) => {
         const isCompleted = state.completedLessons.includes(lesson.id);
-        const isUnlocked  = idx === 0 || state.completedLessons.includes(LESSONS[idx - 1].id);
+        // AI lessons (mod 6) are unlocked if any lesson is completed
+        const isUnlocked  = idx === 0 || 
+                           (idx > 0 && state.completedLessons.includes(LESSONS[idx - 1].id)) || 
+                           (lesson.module === 6 && state.completedLessons.length > 0);
 
         const node = document.createElement('div');
         node.className = `lesson-node ${isCompleted ? 'completed' : ''} ${!isUnlocked && !isCompleted ? 'locked' : ''}`;
@@ -168,13 +176,13 @@ function renderHome() {
             <div class="lesson-icon">${lesson.icon}</div>
             <div class="lesson-info">
                 <div class="lesson-title">${lesson.title}</div>
-                <div class="lesson-meta">Módulo ${lesson.module} · ${lesson.exercises.length} exercícios · +${lesson.xpReward} XP</div>
+                <div class="lesson-meta">Módulo ${lesson.module} · ${lesson.exercises ? lesson.exercises.length : '5+'} exercícios · +${lesson.xpReward} XP</div>
             </div>
             <div class="lesson-badge">${isCompleted ? '✅' : isUnlocked ? '▶' : '🔒'}</div>
         `;
 
         if (isUnlocked || isCompleted) {
-            node.addEventListener('click', () => startLesson(lesson));
+            node.addEventListener('click', () => startLesson(lesson.id));
         }
 
         els.lessonsGrid.appendChild(node);
@@ -188,14 +196,42 @@ function renderLives(count, el) {
 }
 
 // ── LESSON START ────────────────────────────────────
-function startLesson(lesson) {
-    state.currentLesson        = lesson;
-    state.currentExerciseIndex = 0;
-    state.correctCount         = 0;
-    state.wrongCount           = 0;
-    state.wordOrderSelected    = [];
+async function startLesson(id) {
+    const lesson = LESSONS.find(l => l.id === id);
+    if (!lesson) return;
 
-    showScreen('lesson');
+    // Reset progress
+    state.currentExerciseIndex = 0;
+    state.correctCount = 0;
+    state.wrongCount = 0;
+    state.lives = 5;
+
+    // IF AI LESSON: Generate on the fly
+    if (lesson.isAi) {
+        // Show loading state
+        els.exerciseArea.innerHTML = `
+            <div style="text-align:center; padding: 40px;">
+                <div class="mascot-badge" style="font-size: 5rem;">🦫✨</div>
+                <h2 style="margin-top:20px;">Filó está criando sua lição personalizada...</h2>
+                <p style="color: var(--text-secondary);">Isso leva apenas alguns segundos!</p>
+                <div class="spinner" style="margin: 20px auto;"></div>
+            </div>
+        `;
+        showScreen('lesson');
+        
+        const aiData = await generateLesson(lesson.theme, lesson.module, state.xp);
+        if (aiData && aiData.exercises && aiData.exercises.length > 0) {
+            state.currentLesson = { ...lesson, exercises: aiData.exercises };
+        } else {
+            alert("A Filó não conseguiu criar essa lição agora. Verifique sua conexão!");
+            showScreen('home');
+            return;
+        }
+    } else {
+        state.currentLesson = lesson;
+        showScreen('lesson');
+    }
+
     updateLessonProgress();
     renderLives(state.lives, els.lessonLives);
     renderExercise();
@@ -228,9 +264,17 @@ function speak(text, btn = null) {
     // Stop any current speech
     window.speechSynthesis.cancel();
 
-    const utterance = new SpeechSynthesisUtterance(text);
+    // Clean text: strip emojis, symbols, and all punctuation
+    // We only keep letters, numbers and spaces for the speech engine
+    const cleanText = text
+        .replace(/([\u2700-\u27BF]|[\uE000-\uF8FF]|\uD83C[\uDC00-\uDFFF]|\uD83D[\uDC00-\uDFFF]|[\u2011-\u26FF]|\uD83E[\uDD10-\uDDFF])/g, '') // Remove emojis
+        .replace(/[^a-zA-Z0-9\s]/g, ' ') // Remove everything else except letters/numbers/spaces
+        .replace(/\s+/g, ' ') // Collapse multiple spaces
+        .trim();
+
+    const utterance = new SpeechSynthesisUtterance(cleanText);
     utterance.lang = 'en-US';
-    utterance.rate = 0.9; // Slightly slower for better clarity
+    utterance.rate = 0.9; 
 
     if (btn) {
         utterance.onstart = () => btn.classList.add('playing');
@@ -243,6 +287,7 @@ function speak(text, btn = null) {
 // ── MULTIPLE CHOICE ─────────────────────────────────
 function renderMultipleChoice(ex) {
     const letters = ['A', 'B', 'C', 'D'];
+    if (ex.options) ex.options.sort(() => Math.random() - 0.5); // Embaralha as opções
     els.exerciseArea.innerHTML = `
         <p class="exercise-prompt">${ex.prompt}</p>
         ${ex.word ? `
@@ -272,6 +317,10 @@ function renderMultipleChoice(ex) {
         btn.addEventListener('click', () => {
             const idx     = parseInt(btn.dataset.index);
             const correct = ex.options[idx].correct;
+            
+            // Pronounce choice
+            speak(ex.options[idx].text);
+
             handleAnswer(correct, btn, ex);
         });
     });
@@ -280,6 +329,7 @@ function renderMultipleChoice(ex) {
 // ── FILL BLANK ───────────────────────────────────────
 function renderFillBlank(ex) {
     const letters = ['A', 'B', 'C'];
+    if (ex.options) ex.options.sort(() => Math.random() - 0.5); // Embaralha as opções
     els.exerciseArea.innerHTML = `
         <p class="exercise-prompt">${ex.prompt}</p>
         <div class="fill-blank-sentence">
@@ -308,16 +358,21 @@ function renderFillBlank(ex) {
         btn.addEventListener('click', () => {
             const idx     = parseInt(btn.dataset.index);
             const opt     = ex.options[idx];
-            const correct = opt.correct;
-            if (correct) {
-                const blank = document.getElementById('blank-display');
-                if (blank) {
-                    blank.textContent = opt.text;
-                    blank.style.color = 'var(--green)';
-                    blank.style.borderColor = 'var(--green)';
+            
+            // Update visual
+            const blankDisplay = document.getElementById('blank-display');
+            if (blankDisplay) {
+                blankDisplay.textContent = opt.text;
+                if (opt.correct) {
+                    blankDisplay.style.color = 'var(--green)';
+                    blankDisplay.style.borderColor = 'var(--green)';
                 }
             }
-            handleAnswer(correct, btn, ex);
+
+            // Pronounce full sentence with chosen word
+            speak(ex.sentence.replace('___', opt.text));
+
+            handleAnswer(opt.correct, btn, ex);
         });
     });
 }
@@ -369,6 +424,9 @@ function renderWordOrder(ex) {
             state.wordOrderSelected.push(idx);
             chip.classList.add('placed');
 
+            // Pronounce word on select
+            speak(ex.words[idx].text);
+
             const sentence = document.getElementById('wo-sentence');
             const ghost = document.createElement('div');
             ghost.className = 'word-chip';
@@ -414,6 +472,11 @@ function handleAnswer(correct, btn, ex) {
         playSound(true);
         if (btn) btn.classList.add('correct');
         showFeedback(true, ex);
+
+        // 20% chance of a didactic tip even when correct
+        if (Math.random() < 0.2) {
+            getAiTip(ex);
+        }
     } else {
         state.wrongCount++;
         state.lives = Math.max(0, state.lives - 1);
@@ -437,13 +500,33 @@ function handleAnswer(correct, btn, ex) {
 
 async function getAiExplanation(ex) {
     els.feedbackDetail.textContent = "Filó está pensando em uma explicação... 🦫";
-    const prompt = `O usuário errou um exercício de inglês. 
-        Tipo: ${ex.type}. 
-        Prompt: ${ex.prompt}. 
-        Resposta certa: ${ex.options ? ex.options.find(o => o.correct).text : 'N/A'}. 
-        Explique brevemente e de forma didática o porquê dessa resposta estar correta.`;
+    
+    let rightAnswer = 'N/A';
+    if (ex.options) rightAnswer = ex.options.find(o => o.correct).text;
+    else if (ex.words) rightAnswer = ex.correct_order.map(i => ex.words[i].text).join(' ');
+
+    const prompt = `O usuário cometeu um erro didático. 
+        Tipo de Exercício: ${ex.type}. 
+        Enunciado: ${ex.prompt}. 
+        Resposta Correta: ${rightAnswer}. 
+        
+        Aja como a Filó (Capivara Tutora). Explique em português a lógica por trás da resposta correta, mencione a regra gramatical se houver, e dê um exemplo curto de uso. Seja breve e muito gentil. 🦫`;
     const explanation = await askFilo(prompt, "Explicando um erro de exercício");
     els.feedbackDetail.textContent = explanation;
+}
+
+async function getAiTip(ex) {
+    let targetText = ex.word;
+    if (!targetText && ex.options) targetText = ex.options.find(o => o.correct).text;
+    if (!targetText && ex.words) targetText = ex.correct_order.map(i => ex.words[i].text).join(' ');
+
+    const prompt = `O usuário acertou o exercício sobre "${ex.prompt}". 
+        Dê uma curiosidade rápida ou uma dica extra de uso para a palavra/frase "${targetText}". 
+        Seja a Filó: curta, didática e divertida. 🦫✨`;
+    const tip = await askFilo(prompt, "Dando uma dica extra de acerto");
+    if (els.feedbackOverlay.classList.contains('visible')) {
+        els.feedbackDetail.textContent = "Dica da Filó: " + tip;
+    }
 }
 
 // ── FEEDBACK OVERLAY ─────────────────────────────────
@@ -457,12 +540,13 @@ function showFeedback(correct, ex) {
     els.feedbackIcon.textContent    = correct ? '🎉' : '😕';
     els.feedbackMessage.textContent = correct ? 'Correto! Ótimo!' : 'Resposta errada';
 
-    if (!correct && ex.options) {
-        const rightOpt = ex.options.find(o => o.correct);
-        if (rightOpt) {
+    if (!correct) {
+        if (ex.options) {
+            const rightOpt = ex.options.find(o => o.correct);
             els.feedbackDetail.textContent = `Resposta certa: ${rightOpt.text}${rightOpt.pronunciation ? ' (' + rightOpt.pronunciation + ')' : ''}`;
-        } else {
-            els.feedbackDetail.textContent = '';
+        } else if (ex.words && ex.correct_order) {
+            const rightSentence = ex.correct_order.map(i => ex.words[i].text).join(' ');
+            els.feedbackDetail.textContent = `Resposta certa: ${rightSentence}`;
         }
     } else {
         els.feedbackDetail.textContent = '';
@@ -489,33 +573,38 @@ function nextExercise() {
 
 // ── LESSON FINISH ────────────────────────────────────
 function finishLesson() {
-    const lesson   = state.currentLesson;
-    const total    = lesson.exercises.length;
-    const accuracy = Math.round((state.correctCount / total) * 100);
-    const xpGained = state.lives > 0 ? lesson.xpReward : Math.floor(lesson.xpReward * 0.4);
+    try {
+        const lesson   = state.currentLesson;
+        const total    = lesson.exercises.length;
+        const accuracy = Math.round((state.correctCount / total) * 100);
+        const xpGained = state.lives > 0 ? lesson.xpReward : Math.floor(lesson.xpReward * 0.4);
 
-    state.xp += xpGained;
-    if (!state.completedLessons.includes(lesson.id)) {
-        state.completedLessons.push(lesson.id);
+        state.xp += xpGained;
+        if (!state.completedLessons.includes(lesson.id)) {
+            state.completedLessons.push(lesson.id);
+        }
+
+        // Streak: if this is the first lesson of today
+        const lastPlay = localStorage.getItem('eng_last_play');
+        const today    = new Date().toDateString();
+        if (lastPlay !== today) {
+            state.streak++;
+        }
+
+        saveState();
+
+        // Result screen
+        if (els.resultTitle) els.resultTitle.textContent = accuracy >= 80 ? 'Incrível! 🎉' : accuracy >= 50 ? 'Bom trabalho! 👍' : 'Continue tentando! 💪';
+        if (els.resultSubtitle) els.resultSubtitle.textContent = `${lesson.title} — concluída`;
+        if (els.resultXp) els.resultXp.textContent = `+${xpGained} XP`;
+        if (els.resultAccuracy) els.resultAccuracy.textContent = `${accuracy}%`;
+        if (els.resultStreak) els.resultStreak.textContent = state.streak;
+
+        showScreen('result');
+    } catch (err) {
+        console.error("Crash em finishLesson:", err);
+        alert("Ops! Ocorreu um erro ao finalizar a lição. Por favor, tente recarregar o app. Erro: " + err.message);
     }
-
-    // Streak: if this is the first lesson of today
-    const lastPlay = localStorage.getItem('eng_last_play');
-    const today    = new Date().toDateString();
-    if (lastPlay !== today) {
-        state.streak++;
-    }
-
-    saveState();
-
-    // Result screen
-    els.resultTitle.textContent    = accuracy >= 80 ? 'Incrível! 🎉' : accuracy >= 50 ? 'Bom trabalho! 👍' : 'Continue tentando! 💪';
-    els.resultSubtitle.textContent = `${lesson.title} — concluída`;
-    els.resultXp.textContent       = `+${xpGained} XP`;
-    els.resultAccuracy.textContent = `${accuracy}%`;
-    els.resultStreak.textContent   = state.streak;
-
-    showScreen('result');
 }
 
 // ── SOUND ────────────────────────────────────────────
@@ -764,8 +853,12 @@ if (SpeechRecognition) {
 onAuthStateChanged(auth, async (user) => {
     state.user = user;
     if (user) {
-        await loadState();
-        await loadChatHistory();
+        try {
+            await loadState();
+            await loadChatHistory();
+        } catch (err) {
+            console.error("Initialization error:", err);
+        }
         showScreen('home');
         renderHome();
         els.btnOpenChat.style.display = 'flex';
